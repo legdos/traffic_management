@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: traffic_management
+  datasource:
+    url: jdbc:mysql://localhost:3306/traffic?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.example.traffic_management.entity
+  configuration:
+    map-underscore-to-camel-case: true
