@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.traffic_management.mapper.VehicleMapper">
+
+    <!-- 通用结果映射：解决数据库字段名和实体类属性名不一致的问题 -->
+    <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Vehicle">
+        <id column="id" property="id"/>
+        <result column="bandName" property="bandName"/>
+        <result column="licenseNumber" property="licenseNumber"/>
+        <result column="typeCode" property="typeCode"/>
+        <result column="currentPOS" property="currentPOS"/>
+        <result column="currentAction" property="currentAction"/>
+    </resultMap>
+
+    <!-- 1. 根据主键查询 -->
+    <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT id, BandName, licenseNumber, TypeCode, CurrentPOS, CurrentAction
+        FROM vehicle
+        WHERE id = #{id}
+    </select>
+
+    <!-- 2. 查询所有 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT id, BandName, licenseNumber, TypeCode, CurrentPOS, CurrentAction
+        FROM vehicle
+        ORDER BY id
+    </select>
+
+    <!-- 3. 插入 -->
+    <insert id="insert" parameterType="com.example.traffic_management.entity.Vehicle"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO vehicle (BandName, licenseNumber, TypeCode, CurrentPOS, CurrentAction)
+        VALUES (#{bandName}, #{licenseNumber}, #{typeCode}, #{currentPOS}, #{currentAction})
+    </insert>
+
+    <!-- 4. 更新 -->
+    <update id="update" parameterType="com.example.traffic_management.entity.Vehicle">
+        UPDATE vehicle
+        SET bandName = #{bandName},
+        licenseNumber = #{licenseNumber},
+        typeCode = #{typeCode},
+        currentPOS = #{currentPOS},
+        currentAction = #{currentAction}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 5. 删除 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM vehicle WHERE id = #{id}
+    </delete>
+
+</mapper>

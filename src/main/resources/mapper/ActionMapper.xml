@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.traffic_management.mapper.ActionMapper">
+
+    <!-- 通用结果映射：解决数据库字段名和实体类属性名不一致的问题 -->
+    <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Action">
+        <id column="id" property="id"/>
+        <result column="actionName" property="actionName"/>
+        <result column="actionType" property="actionType"/>
+        <result column="duration" property="duration"/>
+        <result column="accidentRate" property="accidentRate"/>
+    </resultMap>
+
+    <!-- 1. 根据主键查询 -->
+    <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT id, actionName, actionType, duration, accidentRate
+        FROM action
+        WHERE id = #{id}
+    </select>
+
+    <!-- 2. 查询所有 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT id, actionName, actionType, duration, accidentRate
+        FROM action
+        ORDER BY id
+    </select>
+
+    <!-- 3. 插入 -->
+    <insert id="insert" parameterType="com.example.traffic_management.entity.Action"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO action (actionName, actionType, duration, accidentRate)
+        VALUES (#{actionName}, #{actionType}, #{duration}, #{accidentRate})
+    </insert>
+
+    <!-- 4. 更新 -->
+    <update id="update" parameterType="com.example.traffic_management.entity.Action">
+        UPDATE action
+        SET actionName = #{actionName},
+        actionType = #{actionType},
+        duration = #{duration},
+        accidentRate = #{accidentRate}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 5. 删除 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM action WHERE id = #{id}
+    </delete>
+
+</mapper>
