@@ -20,4 +20,8 @@ public interface VehicleMapper {
 
     // 删除车辆
     int deleteById(Integer id);
+
+    int softDeleteById(Integer id);          // 软删除：将 isDeleted 设为 1
+
+    List<Vehicle> selectAllNotDeleted();     // 查询未删除的车辆
 }

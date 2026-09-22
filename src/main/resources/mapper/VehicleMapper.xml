@@ -5,35 +5,45 @@
 
 <mapper namespace="com.example.traffic_management.mapper.VehicleMapper">
 
-    <!-- 通用结果映射：解决数据库字段名和实体类属性名不一致的问题 -->
+    <!-- 通用结果映射 -->
     <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Vehicle">
         <id column="id" property="id"/>
         <result column="bandName" property="bandName"/>
         <result column="licenseNumber" property="licenseNumber"/>
         <result column="typeCode" property="typeCode"/>
-        <result column="currentPOS" property="currentPOS"/>
+        <result column="currentLatitude" property="currentLatitude"/>
+        <result column="currentLongitude" property="currentLongitude"/>
         <result column="currentAction" property="currentAction"/>
+        <result column="isDeleted" property="isDeleted"/>
     </resultMap>
 
     <!-- 1. 根据主键查询 -->
     <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
-        SELECT id, BandName, licenseNumber, TypeCode, CurrentPOS, CurrentAction
+        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
         FROM vehicle
         WHERE id = #{id}
     </select>
 
     <!-- 2. 查询所有 -->
     <select id="selectAll" resultMap="BaseResultMap">
-        SELECT id, BandName, licenseNumber, TypeCode, CurrentPOS, CurrentAction
+        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
         FROM vehicle
+        ORDER BY id
+    </select>
+
+    <!-- 2.5 查询未删除的车辆 -->
+    <select id="selectAllNotDeleted" resultMap="BaseResultMap">
+        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
+        FROM vehicle
+        WHERE isDeleted = 0 OR isDeleted IS NULL
         ORDER BY id
     </select>
 
     <!-- 3. 插入 -->
     <insert id="insert" parameterType="com.example.traffic_management.entity.Vehicle"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO vehicle (BandName, licenseNumber, TypeCode, CurrentPOS, CurrentAction)
-        VALUES (#{bandName}, #{licenseNumber}, #{typeCode}, #{currentPOS}, #{currentAction})
+        INSERT INTO vehicle (BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted)
+        VALUES (#{bandName}, #{licenseNumber}, #{typeCode}, #{currentLatitude}, #{currentLongitude}, #{currentAction}, 0)
     </insert>
 
     <!-- 4. 更新 -->
@@ -42,14 +52,22 @@
         SET bandName = #{bandName},
         licenseNumber = #{licenseNumber},
         typeCode = #{typeCode},
-        currentPOS = #{currentPOS},
+        currentLatitude = #{currentLatitude},
+        currentLongitude = #{currentLongitude},
         currentAction = #{currentAction}
         WHERE id = #{id}
     </update>
 
-    <!-- 5. 删除 -->
+    <!-- 5. 物理删除 -->
     <delete id="deleteById" parameterType="java.lang.Integer">
         DELETE FROM vehicle WHERE id = #{id}
     </delete>
+
+    <!-- 6. 软删除 -->
+    <update id="softDeleteById" parameterType="java.lang.Integer">
+        UPDATE vehicle
+        SET isDeleted = 1
+        WHERE id = #{id}
+    </update>
 
 </mapper>

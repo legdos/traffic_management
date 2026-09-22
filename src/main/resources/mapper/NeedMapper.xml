@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.traffic_management.mapper.NeedMapper">
+
+    <!-- 通用结果映射：新增 is_deleted 映射 -->
+    <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Need">
+        <id column="id" property="id"/>
+        <result column="needContent" property="needContent"/>
+        <result column="factory_id" property="factoryId"/>
+        <result column="isDeleted" property="isDeleted"/>
+    </resultMap>
+
+    <!-- 根据ID查询（过滤已软删除数据） -->
+    <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT id, needContent, factory_id, isDeleted
+        FROM need
+        WHERE id = #{id} AND isDeleted = 0
+    </select>
+
+    <!-- 查询所有未删除的 -->
+    <select id="selectAllNotDeleted" resultMap="BaseResultMap">
+        SELECT id, needContent, factory_id, isDeleted
+        FROM need
+        WHERE isDeleted = 0
+    </select>
+
+    <!-- 插入并回写自增ID -->
+    <insert id="insert" parameterType="com.example.traffic_management.entity.Need"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO need (needContent, factory_id, isDeleted)
+        VALUES (#{needContent}, #{factoryId}, 0)
+    </insert>
+
+    <!-- 软删除 -->
+    <update id="softDeleteById" parameterType="java.lang.Integer">
+        UPDATE need SET isDeleted = 1 WHERE id = #{id}
+    </update>
+
+    <!-- 物理删除（保留备用） -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM need WHERE id = #{id}
+    </delete>
+
+</mapper>

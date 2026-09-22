@@ -14,10 +14,16 @@ public class VehicleController {
     @Autowired
     private VehicleService vehicleService;
 
-    // 查询所有车辆
+    // 查询所有车辆（含已删除）
     @GetMapping
     public List<Vehicle> findAll() {
         return vehicleService.findAll();
+    }
+
+    // 查询未删除的车辆
+    @GetMapping("/active")
+    public List<Vehicle> findAllActive() {
+        return vehicleService.findAllActive();
     }
 
     // 根据 ID 查询
@@ -40,10 +46,17 @@ public class VehicleController {
         return "修改成功";
     }
 
-    // 删除车辆
+    // 物理删除车辆
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Integer id) {
         vehicleService.deleteById(id);
         return "删除成功";
+    }
+
+    // 软删除车辆（失效）
+    @DeleteMapping("/{id}/deactivate")
+    public String deactivate(@PathVariable Integer id) {
+        vehicleService.softDeleteById(id);
+        return "车辆已失效";
     }
 }

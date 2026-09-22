@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.traffic_management.mapper.FactoryMapper">
+
+    <!-- 通用结果映射 -->
+    <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Factory">
+        <id column="id" property="id"/>
+        <result column="factoryName" property="factoryName"/>
+        <result column="address" property="address"/>
+        <result column="phone" property="phone"/>
+        <result column="createTime" property="createTime"/>
+        <result column="need_id" property="needId"/>
+        <result column="factoryLatitude" property="factoryLatitude"/>
+        <result column="factoryLongitude" property="factoryLongitude"/>
+    </resultMap>
+
+    <!-- 1. 根据主键查询 -->
+    <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT id, factoryName, address, phone, createTime, need_id, factoryLatitude, factoryLongitude
+        FROM factory
+        WHERE id = #{id}
+    </select>
+
+    <!-- 2. 查询所有 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT id, factoryName, address, phone, createTime, need_id, factoryLatitude, factoryLongitude
+        FROM factory
+        ORDER BY id
+    </select>
+
+    <!-- 3. 插入 -->
+    <insert id="insert" parameterType="com.example.traffic_management.entity.Factory"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO factory (factoryName, address, phone, createTime, need_id, factoryLatitude, factoryLongitude)
+        VALUES (#{factoryName}, #{address}, #{phone}, #{createTime}, #{needId}, #{factoryLatitude}, #{factoryLongitude})
+    </insert>
+
+    <!-- 4. 更新 -->
+    <update id="update" parameterType="com.example.traffic_management.entity.Factory">
+        UPDATE factory
+        SET factoryName = #{factoryName},
+        address = #{address},
+        phone = #{phone},
+        need_id = #{needId},
+        factoryLatitude = #{factoryLatitude},
+        factoryLongitude = #{factoryLongitude}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 5. 删除 -->
+    <delete id="deleteById" parameterType="java.lang.Integer">
+        DELETE FROM factory WHERE id = #{id}
+    </delete>
+
+    <!-- 6. 生成需求：回写need_id -->
+    <update id="updateNeedId">
+        UPDATE factory
+        SET need_id = #{needId}
+        WHERE id = #{factoryId}
+    </update>
+
+</mapper>

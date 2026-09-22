@@ -13,7 +13,11 @@ public class Vehicle {
 
     private String typeCode;
 
-    private String currentPOS;
+    private Double currentLatitude;
+
+    private Double currentLongitude;
 
     private String currentAction;
+    
+    private Integer isDeleted;
 }
