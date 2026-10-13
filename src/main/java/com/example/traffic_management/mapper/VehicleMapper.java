@@ -24,4 +24,7 @@ public interface VehicleMapper {
     int softDeleteById(Integer id);          // 软删除：将 isDeleted 设为 1
 
     List<Vehicle> selectAllNotDeleted();     // 查询未删除的车辆
+
+    // 查询空闲车辆（CurrentAction = '空闲' 且未删除）
+    List<Vehicle> findFreeVehicles();
 }

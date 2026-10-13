@@ -15,4 +15,6 @@ public class Need {
     private Integer factoryId;
 
     private Integer isDeleted;
+
+    private Integer assigned;
 }

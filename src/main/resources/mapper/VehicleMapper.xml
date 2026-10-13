@@ -8,7 +8,7 @@
     <!-- 通用结果映射 -->
     <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Vehicle">
         <id column="id" property="id"/>
-        <result column="bandName" property="bandName"/>
+        <result column="BandName" property="bandName"/>
         <result column="licenseNumber" property="licenseNumber"/>
         <result column="typeCode" property="typeCode"/>
         <result column="currentLatitude" property="currentLatitude"/>
@@ -49,7 +49,7 @@
     <!-- 4. 更新 -->
     <update id="update" parameterType="com.example.traffic_management.entity.Vehicle">
         UPDATE vehicle
-        SET bandName = #{bandName},
+        SET BandName = #{bandName},
         licenseNumber = #{licenseNumber},
         typeCode = #{typeCode},
         currentLatitude = #{currentLatitude},
@@ -69,5 +69,12 @@
         SET isDeleted = 1
         WHERE id = #{id}
     </update>
+
+    <!-- 查询空闲车辆（CurrentAction = '空闲' 且未删除） -->
+    <select id="findFreeVehicles" resultMap="BaseResultMap">
+        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
+        FROM vehicle
+        WHERE CurrentAction = '空闲' AND isDeleted = 0
+    </select>
 
 </mapper>
