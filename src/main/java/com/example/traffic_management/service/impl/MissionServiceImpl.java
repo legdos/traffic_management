@@ -65,7 +65,7 @@ public class MissionServiceImpl implements MissionService {
 
         missionMapper.insert(mission);
 
-        vehicle.setCurrentAction("行驶");
+        vehicle.setCurrentAction(2);
         vehicleMapper.update(vehicle);
 
         return mission;

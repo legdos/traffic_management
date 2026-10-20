@@ -15,6 +15,9 @@
         <result column="currentLongitude" property="currentLongitude"/>
         <result column="currentAction" property="currentAction"/>
         <result column="isDeleted" property="isDeleted"/>
+        <result column="remaining_time" property="remainingTime"/>
+        <result column="distance_to_pickup" property="distanceToPickup"/>
+        <result column="transport_distance" property="transportDistance"/>
     </resultMap>
 
     <!-- 1. 根据主键查询 -->
@@ -55,6 +58,11 @@
         currentLatitude = #{currentLatitude},
         currentLongitude = #{currentLongitude},
         currentAction = #{currentAction}
+        remaining_time = #{remainingTime},
+        distance_to_pickup = #{distanceToPickup},
+        transport_distance = #{transportDistance},
+        currentAction = #{currentAction},
+        isDeleted = #{isDeleted
         WHERE id = #{id}
     </update>
 

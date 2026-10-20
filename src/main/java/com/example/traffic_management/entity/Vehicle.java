@@ -17,7 +17,13 @@ public class Vehicle {
 
     private Double currentLongitude;
 
-    private String currentAction;
+    private int currentAction;
     
     private Integer isDeleted;
+
+    private Integer remainingTime;    // 当前状态剩余时间（分钟）
+
+    private Double distanceToPickup;  // 到取货点的距离（km）
+
+    private Double transportDistance; // 运输距离（km）
 }
