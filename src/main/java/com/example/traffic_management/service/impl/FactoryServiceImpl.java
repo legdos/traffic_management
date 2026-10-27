@@ -43,11 +43,14 @@ public class FactoryServiceImpl implements FactoryService {
 
     @Override
     public void deleteById(Integer id) {
-        factoryMapper.deleteById(id);
+        factoryMapper.softDeleteById(id);
+    }
+    @Override
+    public void softDeleteById(Integer id) {
+        factoryMapper.softDeleteById(id);
     }
 
-    @Override
-    public Integer generateNeed(Integer factoryId, String materialType) {
+public Integer generateNeed(Integer factoryId, String materialType) {
         // 1. 校验工厂是否存在
         Factory factory = factoryMapper.selectById(factoryId);
         if (factory == null) {
@@ -57,12 +60,12 @@ public class FactoryServiceImpl implements FactoryService {
         // 2. 真实向 need 表插入数据
         Need need = new Need();
         need.setNeedContent(materialType); // 如 "木头"、"铁"
+        need.setCargoTotalWeight(java.math.BigDecimal.ONE);
         need.setFactoryId(factoryId);      // 记录需求归属的工厂
         needMapper.insert(need);           // 真正执行 INSERT
 
-        // 3. 获取刚插入的自增ID，回写工厂表的 need_id
+        // 3. 获取刚插入的自增ID；需求通过 need.factory_id 关联工厂
         Integer realNeedId = need.getId();
-        factoryMapper.updateNeedId(factoryId, realNeedId);
 
         // 4. 返回需求ID（便于前端或后续业务追踪）
         return realNeedId;

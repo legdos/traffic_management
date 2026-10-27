@@ -18,9 +18,9 @@ public interface FactoryMapper {
     // 更新工厂
     int update(Factory factory);
 
+    int softDeleteById(Integer id);
+
     // 删除工厂（物理删除）
     int deleteById(Integer id);
 
-    // 生成需求：回写工厂关联的 need_id
-    int updateNeedId(Integer factoryId, Integer needId);
 }

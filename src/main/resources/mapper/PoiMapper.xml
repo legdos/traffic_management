@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.traffic_management.mapper.PoiMapper">
+  <resultMap id="PoiResultMap" type="com.example.traffic_management.entity.Poi">
+    <id column="id" property="id"/>
+    <result column="poi_name" property="poiName"/>
+    <result column="poi_type" property="poiType"/>
+    <result column="poi_address" property="poiAddress"/>
+    <result column="poi_latitude" property="poiLatitude"/>
+    <result column="poi_longitude" property="poiLongitude"/>
+  </resultMap>
+  <select id="selectActiveById" resultMap="PoiResultMap">
+    SELECT id,poi_name,poi_type,poi_address,poi_latitude,poi_longitude
+    FROM poi WHERE id=#{id} AND deleted_at IS NULL
+  </select>
+  <select id="selectAllActive" resultMap="PoiResultMap">
+    SELECT id,poi_name,poi_type,poi_address,poi_latitude,poi_longitude
+    FROM poi WHERE deleted_at IS NULL ORDER BY id
+  </select>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO poi(poi_name,poi_type,poi_address,poi_latitude,poi_longitude)
+    VALUES(#{poiName},#{poiType},#{poiAddress},#{poiLatitude},#{poiLongitude})
+  </insert>
+  <select id="countRouteReferences" resultType="int">
+    SELECT COUNT(*) FROM route WHERE poi_id=#{id}
+  </select>
+  <update id="softDeleteById">
+    UPDATE poi SET deleted_at=CURRENT_TIMESTAMP(3)
+    WHERE id=#{id} AND deleted_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM route WHERE route.poi_id=poi.id)
+  </update>
+</mapper>

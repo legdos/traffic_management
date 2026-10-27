@@ -1,6 +1,7 @@
 package com.example.traffic_management.mapper;
 
 import com.example.traffic_management.entity.Vehicle;
+import com.example.traffic_management.entity.SimulationTarget;
 import org.apache.ibatis.annotations.Mapper;
 import java.util.List;
 
@@ -25,6 +26,8 @@ public interface VehicleMapper {
 
     List<Vehicle> selectAllNotDeleted();     // 查询未删除的车辆
 
-    // 查询空闲车辆（CurrentAction = '空闲' 且未删除）
-    List<Vehicle> findFreeVehicles();
+    int markAssigned(Integer id);
+    int updatePosition(Integer id, Long version, Double latitude, Double longitude, java.util.Date positionAt);
+    int updateState(Integer id, Long version, String status);
+    List<SimulationTarget> selectAssignedSimulationTargets();
 }

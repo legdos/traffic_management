@@ -11,4 +11,6 @@ public interface VehicleService {
     void update(Vehicle vehicle);
     void deleteById(Integer id);         // 保留：物理删除
     void softDeleteById(Integer id);     // 新增：软删除（isDeleted=1）
+    int updatePosition(Integer id, Long version, Double latitude, Double longitude, java.util.Date positionAt);
+    int updateState(Integer id, Long version, String status);
 }

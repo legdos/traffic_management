@@ -44,7 +44,7 @@ public class FactoryController {
     @DeleteMapping("/{id}")
     public String delete(@PathVariable Integer id) {
         factoryService.deleteById(id);
-        return "工厂删除成功";
+        return "工厂已失效";
     }
 
     // 生成需求并回写need_id

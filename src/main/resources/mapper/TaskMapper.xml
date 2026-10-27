@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.traffic_management.mapper.TaskMapper">
+  <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Task">
+    <id column="id" property="id"/>
+    <result column="trans_task_name" property="taskName"/>
+    <result column="need_id" property="needId"/>
+    <result column="route_id" property="routeId"/>
+    <result column="vehicle_id" property="vehicleId"/>
+    <result column="status" property="status"/>
+    <result column="match_score" property="matchScore"/>
+    <result column="completed_at" property="completedAt"/>
+  </resultMap>
+
+  <sql id="columns">id,trans_task_name,need_id,route_id,vehicle_id,status,match_score,completed_at</sql>
+
+  <select id="selectById" resultMap="BaseResultMap">
+    SELECT <include refid="columns"/> FROM trans_task WHERE id=#{id}
+  </select>
+  <select id="selectActiveByNeedId" resultMap="BaseResultMap">
+    SELECT <include refid="columns"/> FROM trans_task
+    WHERE active_need_id=#{needId} AND status IN ('ASSIGNED','IN_PROGRESS') LIMIT 1
+  </select>
+  <select id="selectActiveByVehicleId" resultMap="BaseResultMap">
+    SELECT <include refid="columns"/> FROM trans_task
+    WHERE active_vehicle_id=#{vehicleId} AND status IN ('ASSIGNED','IN_PROGRESS') LIMIT 1
+  </select>
+  <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO trans_task
+      (trans_task_name,need_id,route_id,vehicle_id,status,match_score,active_need_id,active_vehicle_id)
+    VALUES
+      (#{taskName},#{needId},#{routeId},#{vehicleId},'ASSIGNED',#{matchScore},#{needId},#{vehicleId})
+  </insert>
+</mapper>

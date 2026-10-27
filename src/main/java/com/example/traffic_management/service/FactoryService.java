@@ -12,7 +12,9 @@ public interface FactoryService {
 
     void update(Factory factory);
 
-    void deleteById(Integer id);        // 保留：物理删除
+    void deleteById(Integer id);
+
+    void softDeleteById(Integer id);        // 保留：物理删除
 
     Integer generateNeed(Integer factoryId, String materialType); // 生成需求并回写need_id
 }

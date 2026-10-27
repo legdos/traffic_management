@@ -45,4 +45,16 @@ public class VehicleServiceImpl implements VehicleService {
     public void softDeleteById(Integer id) {
         vehicleMapper.softDeleteById(id); // 新增软删除
     }
+
+    @Override
+    @Transactional
+    public int updatePosition(Integer id, Long version, Double latitude, Double longitude, java.util.Date positionAt) {
+        return vehicleMapper.updatePosition(id, version, latitude, longitude, positionAt);
+    }
+
+    @Override
+    @Transactional
+    public int updateState(Integer id, Long version, String status) {
+        return vehicleMapper.updateState(id, version, status);
+    }
 }

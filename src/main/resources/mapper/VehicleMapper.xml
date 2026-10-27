@@ -1,80 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!DOCTYPE mapper
-        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
-        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.traffic_management.mapper.VehicleMapper">
-
-    <!-- 通用结果映射 -->
-    <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Vehicle">
-        <id column="id" property="id"/>
-        <result column="BandName" property="bandName"/>
-        <result column="licenseNumber" property="licenseNumber"/>
-        <result column="typeCode" property="typeCode"/>
-        <result column="currentLatitude" property="currentLatitude"/>
-        <result column="currentLongitude" property="currentLongitude"/>
-        <result column="currentAction" property="currentAction"/>
-        <result column="isDeleted" property="isDeleted"/>
-    </resultMap>
-
-    <!-- 1. 根据主键查询 -->
-    <select id="selectById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
-        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
-        FROM vehicle
-        WHERE id = #{id}
-    </select>
-
-    <!-- 2. 查询所有 -->
-    <select id="selectAll" resultMap="BaseResultMap">
-        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
-        FROM vehicle
-        ORDER BY id
-    </select>
-
-    <!-- 2.5 查询未删除的车辆 -->
-    <select id="selectAllNotDeleted" resultMap="BaseResultMap">
-        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
-        FROM vehicle
-        WHERE isDeleted = 0 OR isDeleted IS NULL
-        ORDER BY id
-    </select>
-
-    <!-- 3. 插入 -->
-    <insert id="insert" parameterType="com.example.traffic_management.entity.Vehicle"
-            useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO vehicle (BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted)
-        VALUES (#{bandName}, #{licenseNumber}, #{typeCode}, #{currentLatitude}, #{currentLongitude}, #{currentAction}, 0)
-    </insert>
-
-    <!-- 4. 更新 -->
-    <update id="update" parameterType="com.example.traffic_management.entity.Vehicle">
-        UPDATE vehicle
-        SET BandName = #{bandName},
-        licenseNumber = #{licenseNumber},
-        typeCode = #{typeCode},
-        currentLatitude = #{currentLatitude},
-        currentLongitude = #{currentLongitude},
-        currentAction = #{currentAction}
-        WHERE id = #{id}
-    </update>
-
-    <!-- 5. 物理删除 -->
-    <delete id="deleteById" parameterType="java.lang.Integer">
-        DELETE FROM vehicle WHERE id = #{id}
-    </delete>
-
-    <!-- 6. 软删除 -->
-    <update id="softDeleteById" parameterType="java.lang.Integer">
-        UPDATE vehicle
-        SET isDeleted = 1
-        WHERE id = #{id}
-    </update>
-
-    <!-- 查询空闲车辆（CurrentAction = '空闲' 且未删除） -->
-    <select id="findFreeVehicles" resultMap="BaseResultMap">
-        SELECT id, BandName, licenseNumber, TypeCode, currentLatitude, currentLongitude, CurrentAction, isDeleted
-        FROM vehicle
-        WHERE CurrentAction = '空闲' AND isDeleted = 0
-    </select>
-
+ <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Vehicle"><id column="id" property="id"/><result column="vehicle_type" property="typeCode"/><result column="max_load" property="maxLoad"/><result column="license_number" property="licenseNumber"/><result column="vehicle_latitude" property="currentLatitude"/><result column="vehicle_longitude" property="currentLongitude"/><result column="current_action_code" property="currentAction"/><result column="status" property="status"/><result column="version" property="version"/><result column="route_id" property="routeId"/><result column="segment_index" property="segmentIndex"/><result column="segment_progress" property="segmentProgress"/><result column="position_at" property="positionAt"/><result column="is_deleted" property="isDeleted"/></resultMap>
+ <resultMap id="SimulationTargetMap" type="com.example.traffic_management.entity.SimulationTarget"><id column="id" property="id"/><result column="current_latitude" property="currentLatitude"/><result column="current_longitude" property="currentLongitude"/><result column="version" property="version"/><result column="target_latitude" property="targetLatitude"/><result column="target_longitude" property="targetLongitude"/></resultMap>
+ <sql id="cols">id,vehicle_type,max_load,license_number,vehicle_latitude,vehicle_longitude,current_action_code,status,version,route_id,segment_index,segment_progress,position_at,CASE WHEN deleted_at IS NULL THEN 0 ELSE 1 END AS is_deleted</sql>
+ <select id="selectById" resultMap="BaseResultMap">SELECT <include refid="cols"/> FROM vehicle WHERE id=#{id}</select>
+ <select id="selectAll" resultMap="BaseResultMap">SELECT <include refid="cols"/> FROM vehicle ORDER BY id</select>
+ <select id="selectAllNotDeleted" resultMap="BaseResultMap">SELECT <include refid="cols"/> FROM vehicle WHERE deleted_at IS NULL ORDER BY id</select>
+ <insert id="insert" useGeneratedKeys="true" keyProperty="id">INSERT INTO vehicle(vehicle_type,max_load,license_number,vehicle_latitude,vehicle_longitude,current_action_code,status) VALUES(#{typeCode},#{maxLoad},#{licenseNumber},#{currentLatitude},#{currentLongitude},#{currentAction},'AVAILABLE')</insert>
+ <update id="update">UPDATE vehicle SET vehicle_type=#{typeCode},max_load=#{maxLoad},license_number=#{licenseNumber},vehicle_latitude=#{currentLatitude},vehicle_longitude=#{currentLongitude},current_action_code=#{currentAction} WHERE id=#{id} AND deleted_at IS NULL</update>
+ <delete id="deleteById">DELETE FROM vehicle WHERE id=#{id}</delete>
+ <update id="softDeleteById">UPDATE vehicle SET deleted_at=CURRENT_TIMESTAMP(3),status='INACTIVE' WHERE id=#{id} AND deleted_at IS NULL</update>
+ <update id="markAssigned">UPDATE vehicle SET status='ASSIGNED' WHERE id=#{id} AND deleted_at IS NULL AND status='AVAILABLE'</update>
+ <update id="updatePosition">UPDATE vehicle SET vehicle_latitude=#{latitude},vehicle_longitude=#{longitude},position_at=#{positionAt},version=version+1 WHERE id=#{id} AND deleted_at IS NULL AND version=#{version}</update>
+ <update id="updateState">UPDATE vehicle SET status=#{status},version=version+1 WHERE id=#{id} AND deleted_at IS NULL AND version=#{version}</update>
+ <select id="selectAssignedSimulationTargets" resultMap="SimulationTargetMap">
+  SELECT v.id,v.vehicle_latitude AS current_latitude,v.vehicle_longitude AS current_longitude,v.version,
+         f.factory_latitude AS target_latitude,f.factory_longitude AS target_longitude
+  FROM vehicle v
+  JOIN trans_task t ON t.active_vehicle_id=v.id AND t.status IN ('ASSIGNED','IN_PROGRESS')
+  JOIN need n ON n.id=t.need_id AND n.deleted_at IS NULL
+  JOIN factory f ON f.id=n.factory_id AND f.deleted_at IS NULL
+  WHERE v.deleted_at IS NULL AND v.status IN ('ASSIGNED','LOADING','TRANSPORTING','UNLOADING')
+ </select>
 </mapper>
