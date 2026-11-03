@@ -1,13 +1,19 @@
+server:
+  # 后端固定使用 8080，前端 vite.config.js 的代理目标与此保持一致
+  port: 8080
+
 spring:
   application:
-    name: traffic_management
+    name: traffic_management_backend
   datasource:
-    url: jdbc:mysql://localhost:3306/traffic?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    # XAMPP(MySQL/MariaDB) 本机实例：localhost:3306，库名 traffic，账号 root 无密码
+    url: jdbc:mysql://localhost:3306/traffic?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
 mybatis:
+  # mapper XML 位于 src/main/resources/mapper，打包后同样位于 classpath:mapper
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.example.traffic_management.entity
   configuration:

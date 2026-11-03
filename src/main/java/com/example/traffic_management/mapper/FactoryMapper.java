@@ -2,6 +2,7 @@ package com.example.traffic_management.mapper;
 
 import com.example.traffic_management.entity.Factory;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import java.util.List;
 
 @Mapper
@@ -22,5 +23,6 @@ public interface FactoryMapper {
     int deleteById(Integer id);
 
     // 生成需求：回写工厂关联的 need_id
-    int updateNeedId(Integer factoryId, Integer needId);
+    // 多参数必须用 @Param 命名，否则 XML 里的 #{factoryId}/#{needId} 找不到参数
+    int updateNeedId(@Param("factoryId") Integer factoryId, @Param("needId") Integer needId);
 }
