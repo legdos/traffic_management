@@ -94,4 +94,13 @@
         ORDER BY id
     </select>
 
+    <!-- 重置仿真：所有车辆回到空闲 -->
+    <update id="resetAllStates">
+        UPDATE vehicle
+        SET currentAction = 1,
+            remaining_time = 0,
+            distance_to_pickup = 0,
+            transport_distance = 0
+    </update>
+
 </mapper>

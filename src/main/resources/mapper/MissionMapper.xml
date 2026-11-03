@@ -11,34 +11,50 @@
         <result column="missionNo" property="missionNo"/>
         <result column="car_id" property="carId"/>
         <result column="goods_id" property="goodsId"/>
+        <result column="goods_type" property="goodsType"/>
         <result column="quantity" property="quantity"/>
         <result column="totalWeight" property="totalWeight"/>
         <result column="totalVol" property="totalVol"/>
+        <result column="distance_km" property="distanceKm"/>
+        <result column="total_minutes" property="totalMinutes"/>
+        <result column="elapsed_minutes" property="elapsedMinutes"/>
         <result column="status" property="status"/>
         <result column="createTime" property="createTime"/>
         <result column="factory_id" property="factoryId"/>
+        <result column="dest_factory_id" property="destFactoryId"/>
         <result column="route_id" property="routeId"/>
         <result column="need_id" property="needId"/>
     </resultMap>
 
+    <sql id="BaseColumns">
+        id, missionNo, car_id, goods_id, goods_type, quantity, totalWeight, totalVol,
+        distance_km, total_minutes, elapsed_minutes, status, createTime,
+        factory_id, dest_factory_id, route_id, need_id
+    </sql>
+
     <!-- 插入并回写自增ID -->
     <insert id="insert" parameterType="com.example.traffic_management.entity.Mission"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO mission (missionNo, car_id, goods_id, quantity, totalWeight, totalVol, status, createTime, factory_id, route_id, need_id)
-        VALUES (#{missionNo}, #{carId}, #{goodsId}, #{quantity}, #{totalWeight}, #{totalVol}, #{status}, #{createTime}, #{factoryId}, #{routeId}, #{needId})
+        INSERT INTO mission (missionNo, car_id, goods_id, goods_type, quantity, totalWeight, totalVol,
+                             distance_km, total_minutes, elapsed_minutes, status, createTime,
+                             factory_id, dest_factory_id, route_id, need_id)
+        VALUES (#{missionNo}, #{carId}, #{goodsId}, #{goodsType}, #{quantity}, #{totalWeight}, #{totalVol},
+                #{distanceKm}, #{totalMinutes}, #{elapsedMinutes}, #{status}, #{createTime},
+                #{factoryId}, #{destFactoryId}, #{routeId}, #{needId})
     </insert>
 
     <!-- 根据ID查询 -->
     <select id="findById" parameterType="java.lang.Integer" resultMap="BaseResultMap">
-        SELECT id, missionNo, car_id, goods_id, quantity, totalWeight, totalVol, status, createTime, factory_id, route_id, need_id
+        SELECT <include refid="BaseColumns"/>
         FROM mission
         WHERE id = #{id}
     </select>
 
     <!-- 查询所有 -->
     <select id="findAll" resultMap="BaseResultMap">
-        SELECT id, missionNo, car_id, goods_id, quantity, totalWeight, totalVol, status, createTime, factory_id, route_id, need_id
+        SELECT <include refid="BaseColumns"/>
         FROM mission
+        ORDER BY id DESC
     </select>
 
     <!-- 更新状态 -->
@@ -48,9 +64,66 @@
 
     <!-- 根据need_id查询 -->
     <select id="findByNeedId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
-        SELECT id, missionNo, car_id, goods_id, quantity, totalWeight, totalVol, status, createTime, factory_id, route_id, need_id
+        SELECT <include refid="BaseColumns"/>
         FROM mission
         WHERE need_id = #{needId}
     </select>
+
+    <!-- 按状态取最近 N 条，前端看板分组使用 -->
+    <select id="findByStatus" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM mission
+        WHERE status = #{status}
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 进行中的任务 -->
+    <select id="findActive" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM mission
+        WHERE status IN ('接单中', '装货中', '运输中', '卸货中')
+        ORDER BY id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 待接单任务 -->
+    <select id="findPending" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM mission
+        WHERE status = '待接单'
+        ORDER BY id
+        LIMIT #{limit}
+    </select>
+
+    <select id="countPending" resultType="int">
+        SELECT COUNT(*) FROM mission WHERE status = '待接单'
+    </select>
+
+    <!-- 某辆车当前进行中的任务 -->
+    <select id="findActiveByVehicleId" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM mission
+        WHERE car_id = #{vehicleId}
+          AND status IN ('接单中', '装货中', '运输中', '卸货中')
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <!-- 更新任务进度 -->
+    <update id="updateProgress" parameterType="com.example.traffic_management.entity.Mission">
+        UPDATE mission
+        SET status = #{status},
+            car_id = #{carId},
+            elapsed_minutes = #{elapsedMinutes},
+            total_minutes = #{totalMinutes},
+            distance_km = #{distanceKm}
+        WHERE id = #{id}
+    </update>
+
+    <!-- 清空任务（仿真重置） -->
+    <delete id="deleteAll">
+        DELETE FROM mission
+    </delete>
 
 </mapper>

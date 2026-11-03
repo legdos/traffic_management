@@ -18,3 +18,19 @@ mybatis:
   type-aliases-package: com.example.traffic_management.entity
   configuration:
     map-underscore-to-camel-case: true
+
+# 马表仿真参数
+sim:
+  # 每轮循环的真实间隔（秒）
+  tick-seconds: 5
+  # 一轮循环代表现实中的分钟数（5 秒 = 5 分钟）
+  minutes-per-tick: 5
+  # 车辆统一速度（km/h）
+  speed-kmh: 60
+  # 装货 / 卸货 / 停留等待 的固定耗时（分钟）
+  loading-minutes: 60
+  unloading-minutes: 60
+  waiting-minutes: 10
+  # 每轮生成一条新运输任务的概率，以及待接单任务上限
+  task-probability: 0.7
+  max-pending-tasks: 50

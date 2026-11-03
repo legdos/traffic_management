@@ -27,4 +27,7 @@ public interface VehicleMapper {
 
     // 查询空闲车辆（CurrentAction = '空闲' 且未删除）
     List<Vehicle> findFreeVehicles();
+
+    // 重置仿真：所有车辆回到空闲、清空计时与里程
+    int resetAllStates();
 }
