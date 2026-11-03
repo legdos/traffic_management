@@ -4,6 +4,7 @@ import com.example.traffic_management.config.SimProperties;
 import com.example.traffic_management.dto.SimStateDto;
 import com.example.traffic_management.entity.Factory;
 import com.example.traffic_management.entity.Mission;
+import com.example.traffic_management.entity.Route;
 import com.example.traffic_management.entity.Vehicle;
 import com.example.traffic_management.enums.MissionStatus;
 import com.example.traffic_management.enums.VehicleState;
@@ -11,6 +12,7 @@ import com.example.traffic_management.mapper.FactoryMapper;
 import com.example.traffic_management.mapper.MissionMapper;
 import com.example.traffic_management.mapper.VehicleMapper;
 import com.example.traffic_management.util.GeoUtil;
+import com.example.traffic_management.util.PolylineUtil;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,6 +60,8 @@ public class SimulationService implements InitializingBean {
     private FactoryMapper factoryMapper;
     @Autowired
     private VehicleStateService stateService;
+    @Autowired
+    private RouteService routeService;
     @Autowired
     private SimProperties props;
 
@@ -115,6 +120,7 @@ public class SimulationService implements InitializingBean {
         tick = 0;
         simMinutes = 0;
         factoryIndex = null;
+        routeService.clearCache();
         log.info("仿真已重置：删除 {} 条任务，车辆全部回到空闲", removed);
     }
 
@@ -191,7 +197,11 @@ public class SimulationService implements InitializingBean {
         while (dest.getId().equals(origin.getId())) {
             dest = factories.get(random.nextInt(factories.size()));
         }
-        double km = GeoUtil.distanceKm(origin.getFactoryLatitude(), origin.getFactoryLongitude(),
+        // 先生成/复用路线实体，任务的距离取路线实际长度（而不是两点直线距离）
+        Route route = routeService.ensureFactoryRoute(origin, dest);
+        double km = route.getDistance() != null
+                ? route.getDistance()
+                : GeoUtil.distanceKm(origin.getFactoryLatitude(), origin.getFactoryLongitude(),
                 dest.getFactoryLatitude(), dest.getFactoryLongitude());
 
         Mission mission = new Mission();
@@ -199,6 +209,7 @@ public class SimulationService implements InitializingBean {
         mission.setGoodsType(GOODS_TYPES[random.nextInt(GOODS_TYPES.length)]);
         mission.setFactoryId(origin.getId());
         mission.setDestFactoryId(dest.getId());
+        mission.setRouteId(route.getId());
         mission.setDistanceKm(scaled(km, 1));
         mission.setTotalMinutes(stateService.durationMinutes(VehicleState.TRANSPORTING, km)
                 + props.getLoadingMinutes() + props.getUnloadingMinutes());
@@ -257,6 +268,10 @@ public class SimulationService implements InitializingBean {
      * @return 转移后车辆负责的任务（可能为新绑定的任务，也可能为 null）
      */
     private Mission applyTransition(Vehicle v, VehicleState next, Mission mission) {
+        // 离开接单行驶就说明这一趟取货路线走完了，清掉临时路线缓存
+        if (next != VehicleState.ACCEPTING) {
+            routeService.clearPickupPath(v.getId());
+        }
         switch (next) {
             case IDLE -> park(v);
             case WAITING -> {
@@ -323,31 +338,30 @@ public class SimulationService implements InitializingBean {
         if (pending.isEmpty()) {
             return null;
         }
-        Mission best = null;
-        double bestKm = Double.MAX_VALUE;
-        for (Mission candidate : pending) {
-            double km = distanceToFactory(v, candidate.getFactoryId());
-            if (km < bestKm) {
-                bestKm = km;
-                best = candidate;
-            }
-        }
-        if (best == null) {
-            return null;
-        }
-        best.setCarId(v.getId());
-        best.setStatus(MissionStatus.ACCEPTING);
-        best.setTotalMinutes(nz(best.getTotalMinutes())
-                + stateService.durationMinutes(VehicleState.ACCEPTING, bestKm));
+        // 按取货距离从近到远尝试，抢单成功的才归这辆车
+        pending.sort(Comparator.comparingDouble(m -> distanceToFactory(v, m.getFactoryId())));
 
-        Factory origin = factory(best.getFactoryId());
-        Factory dest = factory(best.getDestFactoryId());
-        log.info("车辆{} 接单 {}：{} → {}，取货距离 {} km",
-                v.getId(), best.getMissionNo(),
-                origin == null ? best.getFactoryId() : origin.getFactoryName(),
-                dest == null ? best.getDestFactoryId() : dest.getFactoryName(),
-                scaled(bestKm, 1));
-        return best;
+        for (Mission best : pending) {
+            if (missionMapper.claim(best.getId(), v.getId()) != 1) {
+                // 已被其他车辆抢走，看下一条
+                continue;
+            }
+            double pickupKm = distanceToFactory(v, best.getFactoryId());
+            best.setCarId(v.getId());
+            best.setStatus(MissionStatus.ACCEPTING);
+            best.setTotalMinutes(nz(best.getTotalMinutes())
+                    + stateService.durationMinutes(VehicleState.ACCEPTING, pickupKm));
+
+            Factory origin = factory(best.getFactoryId());
+            Factory dest = factory(best.getDestFactoryId());
+            log.info("车辆{} 接单 {}：{} → {}，取货距离 {} km",
+                    v.getId(), best.getMissionNo(),
+                    origin == null ? best.getFactoryId() : origin.getFactoryName(),
+                    dest == null ? best.getDestFactoryId() : dest.getFactoryName(),
+                    scaled(pickupKm, 1));
+            return best;
+        }
+        return null;
     }
 
     private void completeMission(Mission mission) {
@@ -361,21 +375,37 @@ public class SimulationService implements InitializingBean {
         v.setRemainingTime(0);
     }
 
-    /** 沿直线朝当前状态的目标点前进一个 tick 对应的里程 */
+    /** 沿路线折线朝当前状态的目标点前进一个 tick 对应的里程 */
     private void moveStep(Vehicle v, VehicleState state, Mission mission) {
-        Integer targetId = state == VehicleState.ACCEPTING
-                ? mission.getFactoryId()
-                : mission.getDestFactoryId();
-        Factory target = factory(targetId);
-        if (target == null) {
-            return;
-        }
         double stepKm = props.getSpeedKmh() * props.getMinutesPerTick() / 60.0;
-        double lat = v.getCurrentLatitude() == null ? target.getFactoryLatitude() : v.getCurrentLatitude();
-        double lng = v.getCurrentLongitude() == null ? target.getFactoryLongitude() : v.getCurrentLongitude();
 
-        double[] pos = GeoUtil.moveTowards(lat, lng,
-                target.getFactoryLatitude(), target.getFactoryLongitude(), stepKm);
+        List<double[]> path;
+        if (state == VehicleState.ACCEPTING) {
+            Factory origin = factory(mission.getFactoryId());
+            if (origin == null) {
+                return;
+            }
+            double lat = v.getCurrentLatitude() == null ? origin.getFactoryLatitude() : v.getCurrentLatitude();
+            double lng = v.getCurrentLongitude() == null ? origin.getFactoryLongitude() : v.getCurrentLongitude();
+            path = routeService.pickupPath(v.getId(), mission.getId(), lat, lng, origin);
+        } else {
+            path = routeService.pointsOf(mission.getRouteId());
+            if (path.size() < 2) {
+                // 兜底：历史任务没有路线时退回两点直线
+                Factory dest = factory(mission.getDestFactoryId());
+                if (dest == null) {
+                    return;
+                }
+                double lat = v.getCurrentLatitude() == null ? dest.getFactoryLatitude() : v.getCurrentLatitude();
+                double lng = v.getCurrentLongitude() == null ? dest.getFactoryLongitude() : v.getCurrentLongitude();
+                path = List.of(new double[]{lng, lat},
+                        new double[]{dest.getFactoryLongitude(), dest.getFactoryLatitude()});
+            }
+        }
+
+        double lat = v.getCurrentLatitude() == null ? path.get(0)[1] : v.getCurrentLatitude();
+        double lng = v.getCurrentLongitude() == null ? path.get(0)[0] : v.getCurrentLongitude();
+        double[] pos = PolylineUtil.advance(path, lat, lng, stepKm);
         v.setCurrentLatitude(scaled(pos[0], 6));
         v.setCurrentLongitude(scaled(pos[1], 6));
     }

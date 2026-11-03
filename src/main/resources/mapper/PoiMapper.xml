@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.traffic_management.mapper.PoiMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Poi">
+        <id column="id" property="id"/>
+        <result column="POI_type" property="poiType"/>
+        <result column="POI_location" property="poiLocation"/>
+        <result column="POI_function" property="poiFunction"/>
+    </resultMap>
+
+    <insert id="insertIfAbsent">
+        INSERT IGNORE INTO poi (id, POI_type, POI_location, POI_function)
+        VALUES (#{id}, #{poiType}, #{poiLocation}, #{poiFunction})
+    </insert>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT id, POI_type, POI_location, POI_function
+        FROM poi
+        WHERE id = #{id}
+    </select>
+
+</mapper>

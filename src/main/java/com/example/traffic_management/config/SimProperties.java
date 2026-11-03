@@ -34,6 +34,12 @@ public class SimProperties {
     /** 待接单任务上限，避免无人接单时无限增长 */
     private int maxPendingTasks = 50;
 
+    /**
+     * 高德「Web服务」类型 key（不是 JS API key）。
+     * 留空时路线由 PolylineUtil 合成；填入后自动切换为真实道路。
+     */
+    private String amapWebKey = "";
+
     public int getTickSeconds() {
         return tickSeconds;
     }
@@ -96,5 +102,13 @@ public class SimProperties {
 
     public void setMaxPendingTasks(int maxPendingTasks) {
         this.maxPendingTasks = maxPendingTasks;
+    }
+
+    public String getAmapWebKey() {
+        return amapWebKey;
+    }
+
+    public void setAmapWebKey(String amapWebKey) {
+        this.amapWebKey = amapWebKey;
     }
 }

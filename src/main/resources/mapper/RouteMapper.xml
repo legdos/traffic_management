@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.traffic_management.mapper.RouteMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.traffic_management.entity.Route">
+        <id column="id" property="id"/>
+        <result column="startPointName" property="startPointName"/>
+        <result column="endPointName" property="endPointName"/>
+        <result column="startPoint" property="startPoint"/>
+        <result column="endPoint" property="endPoint"/>
+        <result column="roadType" property="roadType"/>
+        <result column="distance" property="distance"/>
+        <result column="keyPoint" property="keyPoint"/>
+        <result column="estimatedTime" property="estimatedTime"/>
+        <result column="status" property="status"/>
+        <result column="createTime" property="createTime"/>
+    </resultMap>
+
+    <sql id="BaseColumns">
+        id, startPointName, endPointName, startPoint, endPoint, roadType,
+        distance, keyPoint, estimatedTime, status, createTime
+    </sql>
+
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM route
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByPoiPair" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM route
+        WHERE startPoint = #{startPoint}
+          AND endPoint = #{endPoint}
+        ORDER BY id DESC
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.traffic_management.entity.Route"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO route (startPointName, endPointName, startPoint, endPoint,
+                           roadType, distance, keyPoint, estimatedTime, status, createTime)
+        VALUES (#{startPointName}, #{endPointName}, #{startPoint}, #{endPoint},
+                #{roadType}, #{distance}, #{keyPoint}, #{estimatedTime}, #{status}, #{createTime})
+    </insert>
+
+</mapper>

@@ -110,6 +110,15 @@
         LIMIT 1
     </select>
 
+    <!-- 原子接单：条件更新，避免同一轮里多辆车抢到同一条任务 -->
+    <update id="claim">
+        UPDATE mission
+        SET car_id = #{vehicleId},
+            status = '接单中'
+        WHERE id = #{missionId}
+          AND status = '待接单'
+    </update>
+
     <!-- 更新任务进度 -->
     <update id="updateProgress" parameterType="com.example.traffic_management.entity.Mission">
         UPDATE mission

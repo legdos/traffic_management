@@ -33,6 +33,12 @@ public interface MissionMapper {
     /** 查询某辆车当前进行中的任务 */
     Mission findActiveByVehicleId(@Param("vehicleId") Integer vehicleId);
 
+    /**
+     * 原子接单：只有仍是「待接单」的任务才能被抢到。
+     * 返回 1 表示抢单成功，0 表示已被别的车抢走。
+     */
+    int claim(@Param("missionId") Integer missionId, @Param("vehicleId") Integer vehicleId);
+
     /** 更新任务进度（状态、已耗时、总耗时、距离、负责车辆） */
     int updateProgress(Mission mission);
 

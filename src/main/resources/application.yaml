@@ -34,3 +34,5 @@ sim:
   # 每轮生成一条新运输任务的概率，以及待接单任务上限
   task-probability: 0.7
   max-pending-tasks: 50
+  # 高德「Web服务」类型 key（不是 JS API key）。留空则用合成路线兜底
+  amap-web-key: ""
