@@ -131,7 +131,24 @@ public class SimulationService implements InitializingBean {
         simMinutes = 0;
         factoryIndex = null;
         routeService.clearCache();
-        log.info("仿真已重置：删除 {} 条任务，车辆全部回到空闲", removed);
+
+        // 把车辆停到真实工厂点位上：起点在路网上，第一段接单行驶才不会从"野地"窜出来
+        List<Factory> parking = factories();
+        int moved = 0;
+        if (!parking.isEmpty()) {
+            for (Vehicle v : vehicleMapper.selectAllNotDeleted()) {
+                Factory spot = parking.get(random.nextInt(parking.size()));
+                v.setCurrentAction(VehicleState.IDLE.getActionId());
+                v.setRemainingTime(0);
+                v.setDistanceToPickup(0.0);
+                v.setTransportDistance(0.0);
+                v.setCurrentLatitude(spot.getFactoryLatitude());
+                v.setCurrentLongitude(spot.getFactoryLongitude());
+                vehicleMapper.update(v);
+                moved++;
+            }
+        }
+        log.info("仿真已重置：删除 {} 条任务，{} 辆车停靠到工厂点位", removed, moved);
     }
 
     @PreDestroy
