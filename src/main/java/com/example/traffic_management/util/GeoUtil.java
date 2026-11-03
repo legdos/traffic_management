@@ -22,22 +22,4 @@ public final class GeoUtil {
                 * Math.sin(dLng / 2) * Math.sin(dLng / 2);
         return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1.0, Math.sqrt(a)));
     }
-
-    /**
-     * 从 (lat, lng) 朝目标方向前进 stepKm，返回新的坐标 [lat, lng]。
-     * 剩余距离不足一步时直接落到目标点，避免在终点附近来回抖动。
-     */
-    public static double[] moveTowards(double lat, double lng,
-                                       double targetLat, double targetLng,
-                                       double stepKm) {
-        double remain = distanceKm(lat, lng, targetLat, targetLng);
-        if (remain <= stepKm || remain == 0) {
-            return new double[]{targetLat, targetLng};
-        }
-        double ratio = stepKm / remain;
-        return new double[]{
-                lat + (targetLat - lat) * ratio,
-                lng + (targetLng - lng) * ratio
-        };
-    }
 }

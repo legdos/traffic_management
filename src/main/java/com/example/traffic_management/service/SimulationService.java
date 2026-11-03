@@ -312,9 +312,8 @@ public class SimulationService implements InitializingBean {
             }
             VehicleState next = stateService.next(current, random);
             mission = applyTransition(v, next, mission);
-            if (next.isMoving() && mission != null) {
-                moveStep(v, next, mission);
-            }
+            // 进入行驶状态的这一轮先不动：给前端一个 tick 的时间把真实道路折线回写进来，
+            // 否则车辆会先沿后端合成的折线窜出去一段，再被纠正到路网上。
             log.debug("车辆{}：{} → {}，剩余 {} 分钟{}", v.getId(), current.getDesc(), next.getDesc(),
                     v.getRemainingTime(),
                     mission == null ? "" : "，任务 " + mission.getMissionNo());

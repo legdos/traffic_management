@@ -102,9 +102,4 @@ public enum VehicleState {
         }
         return IDLE;
     }
-
-    /** 只读地暴露矩阵，便于日志/调试输出 */
-    public static double[] transitionsOf(VehicleState state) {
-        return TRANSITIONS[state.ordinal()].clone();
-    }
 }
