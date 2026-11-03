@@ -536,16 +536,47 @@ public class SimulationService implements InitializingBean {
     }
 
     /** 前端一次轮询所需的完整快照 */
-    public SimStateDto state() {        SimStateDto dto = new SimStateDto();
+    public SimStateDto state() {
+        SimStateDto dto = new SimStateDto();
         dto.setRunning(running);
         dto.setTick(tick);
         dto.setSimMinutes(simMinutes);
         dto.setTickSeconds(props.getTickSeconds());
-        dto.setVehicles(vehicleMapper.selectAllNotDeleted());
+
+        List<Vehicle> vehicles = vehicleMapper.selectAllNotDeleted();
+        dto.setVehicles(vehicles);
+
+        Map<Integer, Vehicle> vehicleById = new HashMap<>();
+        for (Vehicle v : vehicles) {
+            vehicleById.put(v.getId(), v);
+        }
+
+        List<Mission> active = missionMapper.findActive(20);
+        for (Mission m : active) {
+            m.setRemainMinutes(estimateRemainMinutes(m, vehicleById.get(m.getCarId())));
+        }
+        dto.setActiveMissions(active);
+
         dto.setPendingMissions(missionMapper.findByStatus(MissionStatus.PENDING, 10));
-        dto.setActiveMissions(missionMapper.findActive(20));
         dto.setDoneMissions(missionMapper.findByStatus(MissionStatus.DONE, 10));
         return dto;
+    }
+
+    /**
+     * 估算任务真实剩余：当前状态剩余 + 后续阶段的固定耗时/行驶耗时。
+     * 直接用 total - elapsed 会算错，因为状态自环会让实际耗时超过初始估算。
+     */
+    private int estimateRemainMinutes(Mission mission, Vehicle vehicle) {
+        int remain = vehicle == null ? 0 : nz(vehicle.getRemainingTime());
+        int transport = (int) Math.round(nzd(mission.getDistanceKm()));
+        String status = mission.getStatus() == null ? "" : mission.getStatus();
+        return switch (status) {
+            case MissionStatus.ACCEPTING ->
+                    remain + props.getLoadingMinutes() + transport + props.getUnloadingMinutes();
+            case MissionStatus.LOADING -> remain + transport + props.getUnloadingMinutes();
+            case MissionStatus.TRANSPORTING -> remain + props.getUnloadingMinutes();
+            default -> remain;
+        };
     }
 
     // ------------------------------------------------------------------

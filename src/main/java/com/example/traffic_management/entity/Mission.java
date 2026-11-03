@@ -22,6 +22,8 @@ public class Mission {
     private Integer totalMinutes;
     /** 任务已耗时（分钟） */
     private Integer elapsedMinutes;
+    /** 非数据库字段：任务预计剩余分钟，由 /sim/state 实时估算后回填 */
+    private Integer remainMinutes;
     private String status;
     private Date createTime;
     /** 起点工厂 */

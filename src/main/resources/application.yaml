@@ -28,9 +28,9 @@ sim:
   # 车辆统一速度（km/h）
   speed-kmh: 60
   # 装货 / 卸货 / 停留等待 的固定耗时（分钟）
-  loading-minutes: 60
-  unloading-minutes: 60
-  waiting-minutes: 10
+  loading-minutes: 30
+  unloading-minutes: 30
+  waiting-minutes: 5
   # 每轮生成一条新运输任务的概率，以及待接单任务上限
   task-probability: 0.9
   # 每轮最多新增几条任务（实际按「空闲车辆数 - 待接单数」的缺口生成，50 辆车也能喂饱）
