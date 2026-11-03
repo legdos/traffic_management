@@ -25,4 +25,9 @@ public interface FactoryMapper {
     // 生成需求：回写工厂关联的 need_id
     // 多参数必须用 @Param 命名，否则 XML 里的 #{factoryId}/#{needId} 找不到参数
     int updateNeedId(@Param("factoryId") Integer factoryId, @Param("needId") Integer needId);
+
+    // 判断同名同坐标的工厂是否已存在（导入去重用）
+    int countByKey(@Param("name") String name,
+                   @Param("latitude") Double latitude,
+                   @Param("longitude") Double longitude);
 }

@@ -164,6 +164,23 @@ public class RouteService {
         legCache.keySet().removeIf(k -> k.startsWith(vehicleId + ":"));
     }
 
+    /**
+     * 前端用高德 JS API 规划出「车辆当前位置 → 装货工厂」的真实道路后回写，
+     * 让接单行驶这一段也走真实路线。
+     */
+    public void setPickupPath(Integer vehicleId, Integer missionId, List<double[]> points) {
+        if (vehicleId == null || missionId == null || points == null || points.size() < 2) {
+            return;
+        }
+        legCache.put(vehicleId + ":" + missionId, points);
+        log.info("车辆 {} 的取货路线已更新为真实道路：{} 个折线点", vehicleId, points.size());
+    }
+
+    /** 取货段当前折线（供调试/前端读取） */
+    public List<double[]> pickupPoints(Integer vehicleId, Integer missionId) {
+        return legCache.getOrDefault(vehicleId + ":" + missionId, new ArrayList<>());
+    }
+
     public void clearCache() {
         legCache.clear();
         routePointsCache.clear();

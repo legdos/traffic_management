@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -66,5 +67,29 @@ public class FactoryServiceImpl implements FactoryService {
 
         // 4. 返回需求ID（便于前端或后续业务追踪）
         return realNeedId;
+    }
+
+    @Override
+    public int importFactories(List<Factory> factories) {
+        if (factories == null || factories.isEmpty()) {
+            return 0;
+        }
+        int added = 0;
+        for (Factory factory : factories) {
+            if (factory.getFactoryName() == null || factory.getFactoryName().isBlank()
+                    || factory.getFactoryLatitude() == null || factory.getFactoryLongitude() == null) {
+                continue;
+            }
+            // 同名同坐标视为已存在，跳过
+            if (factoryMapper.countByKey(factory.getFactoryName(),
+                    factory.getFactoryLatitude(), factory.getFactoryLongitude()) > 0) {
+                continue;
+            }
+            factory.setId(null);
+            factory.setCreateTime(new Date());
+            factoryMapper.insert(factory);
+            added++;
+        }
+        return added;
     }
 }

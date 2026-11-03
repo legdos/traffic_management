@@ -53,4 +53,11 @@ public class FactoryController {
         Integer needId = factoryService.generateNeed(id, material);
         return "需求[" + material + "]生成成功，需求ID：" + needId;
     }
+
+    // 批量导入工厂（前端用高德 POI 检索得到真实坐标后提交），同名同坐标自动跳过
+    @PostMapping("/import")
+    public String importFactories(@RequestBody List<Factory> factories) {
+        int added = factoryService.importFactories(factories);
+        return "导入完成，新增 " + added + " 家工厂";
+    }
 }

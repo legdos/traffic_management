@@ -62,4 +62,13 @@
         WHERE id = #{factoryId}
     </update>
 
+    <!-- 导入去重：同名同坐标视为同一家工厂 -->
+    <select id="countByKey" resultType="int">
+        SELECT COUNT(*)
+        FROM factory
+        WHERE factoryName = #{name}
+          AND factoryLatitude = #{latitude}
+          AND factoryLongitude = #{longitude}
+    </select>
+
 </mapper>

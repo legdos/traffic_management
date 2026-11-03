@@ -509,9 +509,18 @@ public class SimulationService implements InitializingBean {
         return index;
     }
 
+    /** 取货段当前折线（车辆 → 装货工厂） */
+    public List<double[]> pickupPoints(Integer vehicleId, Integer missionId) {
+        return routeService.pickupPoints(vehicleId, missionId);
+    }
+
+    /** 前端回写取货段的真实道路折线 */
+    public void updatePickupPoints(Integer vehicleId, Integer missionId, List<double[]> points) {
+        routeService.setPickupPath(vehicleId, missionId, points);
+    }
+
     /** 前端一次轮询所需的完整快照 */
-    public SimStateDto state() {
-        SimStateDto dto = new SimStateDto();
+    public SimStateDto state() {        SimStateDto dto = new SimStateDto();
         dto.setRunning(running);
         dto.setTick(tick);
         dto.setSimMinutes(simMinutes);
