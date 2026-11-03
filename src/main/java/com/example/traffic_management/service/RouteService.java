@@ -74,7 +74,8 @@ public class RouteService {
         route.setEndPointName(to.getFactoryName());
         route.setStartPoint(startPoi);
         route.setEndPoint(endPoi);
-        route.setRoadType(ROAD_TYPE_SYNTHETIC);
+        // generate() 若走了高德，amapBroken 保持 false，这里就能正确标记来源
+        route.setRoadType(amapEnabled() ? ROAD_TYPE_NAVIGATION : ROAD_TYPE_SYNTHETIC);
         double km = PolylineUtil.totalKm(points);
         route.setDistance(scaled(km));
         route.setKeyPoint(writePoints(points));
@@ -154,6 +155,12 @@ public class RouteService {
     }
 
     // ------------------------------------------------------------------
+
+    /** 高德 Web 服务是否可用（配置了 key 且尚未失败过） */
+    private boolean amapEnabled() {
+        String key = props.getAmapWebKey();
+        return !amapBroken && key != null && !key.isBlank();
+    }
 
     private String ensurePoi(Factory factory) {
         String id = "F" + factory.getId();
