@@ -515,6 +515,7 @@ public class SimulationService implements InitializingBean {
         dto.setRunning(running);
         dto.setTick(tick);
         dto.setSimMinutes(simMinutes);
+        dto.setTickSeconds(props.getTickSeconds());
         dto.setVehicles(vehicleMapper.selectAllNotDeleted());
         dto.setPendingMissions(missionMapper.findByStatus(MissionStatus.PENDING, 10));
         dto.setActiveMissions(missionMapper.findActive(20));

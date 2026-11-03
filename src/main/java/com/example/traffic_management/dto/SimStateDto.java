@@ -19,6 +19,9 @@ public class SimStateDto {
     /** 仿真世界已经过去的分钟数 */
     private int simMinutes;
 
+    /** 每轮的真实间隔（秒），前端据此做位置插值动画 */
+    private int tickSeconds;
+
     private List<Vehicle> vehicles;
 
     /** 待接单任务（最近 10 条） */
@@ -54,10 +57,17 @@ public class SimStateDto {
         this.simMinutes = simMinutes;
     }
 
+    public int getTickSeconds() {
+        return tickSeconds;
+    }
+
+    public void setTickSeconds(int tickSeconds) {
+        this.tickSeconds = tickSeconds;
+    }
+
     public List<Vehicle> getVehicles() {
         return vehicles;
     }
-
     public void setVehicles(List<Vehicle> vehicles) {
         this.vehicles = vehicles;
     }
