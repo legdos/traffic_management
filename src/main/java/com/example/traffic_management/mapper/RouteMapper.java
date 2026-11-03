@@ -14,4 +14,7 @@ public interface RouteMapper {
                         @Param("endPoint") String endPoint);
 
     int insert(Route route);
+
+    /** 前端用 JS API 规划出真实道路后，回写折线与长度 */
+    int updateGeometry(Route route);
 }

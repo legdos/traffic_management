@@ -47,4 +47,13 @@
                 #{roadType}, #{distance}, #{keyPoint}, #{estimatedTime}, #{status}, #{createTime})
     </insert>
 
+    <update id="updateGeometry" parameterType="com.example.traffic_management.entity.Route">
+        UPDATE route
+        SET keyPoint = #{keyPoint},
+            distance = #{distance},
+            estimatedTime = #{estimatedTime},
+            roadType = #{roadType}
+        WHERE id = #{id}
+    </update>
+
 </mapper>

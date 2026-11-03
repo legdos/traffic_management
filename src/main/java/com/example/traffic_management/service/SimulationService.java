@@ -307,9 +307,17 @@ public class SimulationService implements InitializingBean {
                     park(v);
                     return null;
                 }
+                // 路线可能已被前端替换为真实道路，按数据库里的最新长度计算耗时
+                Double routeKm = routeService.routeDistance(mission.getRouteId());
+                double km = (routeKm != null && routeKm > 0) ? routeKm : nzd(mission.getDistanceKm());
+                double delta = km - nzd(mission.getDistanceKm());
+                mission.setDistanceKm(scaled(km, 1));
+                if (Math.abs(delta) > 0.05) {
+                    mission.setTotalMinutes((int) Math.round(nz(mission.getTotalMinutes()) + delta));
+                }
                 v.setCurrentAction(VehicleState.TRANSPORTING.getActionId());
-                v.setRemainingTime(stateService.durationMinutes(VehicleState.TRANSPORTING, nzd(mission.getDistanceKm())));
-                v.setTransportDistance(scaled(nzd(mission.getDistanceKm()), 1));
+                v.setRemainingTime(stateService.durationMinutes(VehicleState.TRANSPORTING, km));
+                v.setTransportDistance(scaled(km, 1));
                 mission.setStatus(MissionStatus.TRANSPORTING);
             }
             case UNLOADING -> {

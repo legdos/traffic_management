@@ -35,6 +35,11 @@ public class RouteService {
 
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    /** 合成路线标记 */
+    public static final String ROAD_TYPE_SYNTHETIC = "城市道路";
+    /** 由前端 JS API 规划出的真实道路标记 */
+    public static final String ROAD_TYPE_NAVIGATION = "导航路线";
+
     @Autowired
     private RouteMapper routeMapper;
     @Autowired
@@ -69,7 +74,7 @@ public class RouteService {
         route.setEndPointName(to.getFactoryName());
         route.setStartPoint(startPoi);
         route.setEndPoint(endPoi);
-        route.setRoadType("城市道路");
+        route.setRoadType(ROAD_TYPE_SYNTHETIC);
         double km = PolylineUtil.totalKm(points);
         route.setDistance(scaled(km));
         route.setKeyPoint(writePoints(points));
@@ -86,6 +91,38 @@ public class RouteService {
 
     public Route getById(Integer id) {
         return routeMapper.findById(id);
+    }
+
+    /** 路线长度（km），取不到返回 null */
+    public Double routeDistance(Integer routeId) {
+        if (routeId == null) {
+            return null;
+        }
+        Route route = routeMapper.findById(routeId);
+        return route == null ? null : route.getDistance();
+    }
+
+    /**
+     * 前端用高德 JS API 规划出真实道路后回写折线。
+     *
+     * @return 影响行数，0 表示路线不存在或点数不足
+     */
+    public int updateGeometry(Integer routeId, List<double[]> points) {
+        if (routeId == null || points == null || points.size() < 2) {
+            return 0;
+        }
+        Route route = routeMapper.findById(routeId);
+        if (route == null) {
+            return 0;
+        }
+        double km = PolylineUtil.totalKm(points);
+        route.setKeyPoint(writePoints(points));
+        route.setDistance(scaled(km));
+        route.setEstimatedTime((int) Math.max(1, Math.round(km)));
+        route.setRoadType(ROAD_TYPE_NAVIGATION);
+        int updated = routeMapper.updateGeometry(route);
+        log.info("路线 {} 已更新为导航路线：{} km，{} 个折线点", routeId, route.getDistance(), points.size());
+        return updated;
     }
 
     /** 路线折线点，供前端绘制 */
