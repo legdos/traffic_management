@@ -25,6 +25,9 @@ public interface MissionMapper {
     /** 取进行中的任务（接单中/装货中/运输中/卸货中） */
     List<Mission> findActive(@Param("limit") int limit);
 
+    /** 取全部进行中的任务，仿真循环一次性加载，避免逐车查询 */
+    List<Mission> findAllActive();
+
     /** 取待接单的任务，按 id 升序，最多 limit 条 */
     List<Mission> findPending(@Param("limit") int limit);
 

@@ -78,13 +78,20 @@
         LIMIT #{limit}
     </select>
 
-    <!-- 进行中的任务 -->
+    <!-- 进行中的任务（看板用，限量） -->
     <select id="findActive" resultMap="BaseResultMap">
         SELECT <include refid="BaseColumns"/>
         FROM mission
         WHERE status IN ('接单中', '装货中', '运输中', '卸货中')
         ORDER BY id DESC
         LIMIT #{limit}
+    </select>
+
+    <!-- 进行中的任务（仿真循环用，全量） -->
+    <select id="findAllActive" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumns"/>
+        FROM mission
+        WHERE status IN ('接单中', '装货中', '运输中', '卸货中')
     </select>
 
     <!-- 待接单任务 -->

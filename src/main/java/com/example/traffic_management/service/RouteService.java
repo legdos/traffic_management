@@ -52,6 +52,9 @@ public class RouteService {
     /** 接单段临时路线缓存：key = vehicleId:missionId */
     private final Map<String, List<double[]>> legCache = new ConcurrentHashMap<>();
 
+    /** 路线折线点缓存：routeId -> points，避免每辆车每轮都回表 + 解析 JSON */
+    private final Map<Integer, List<double[]>> routePointsCache = new ConcurrentHashMap<>();
+
     /** 高德不可用时置位，避免每轮都去请求失败 */
     private volatile boolean amapBroken = false;
 
@@ -122,6 +125,9 @@ public class RouteService {
         route.setEstimatedTime((int) Math.max(1, Math.round(km)));
         route.setRoadType(ROAD_TYPE_NAVIGATION);
         int updated = routeMapper.updateGeometry(route);
+        if (updated > 0) {
+            routePointsCache.put(routeId, points);
+        }
         log.info("路线 {} 已更新为导航路线：{} km，{} 个折线点", routeId, route.getDistance(), points.size());
         return updated;
     }
@@ -131,11 +137,19 @@ public class RouteService {
         if (routeId == null) {
             return new ArrayList<>();
         }
+        List<double[]> cached = routePointsCache.get(routeId);
+        if (cached != null) {
+            return cached;
+        }
         Route route = routeMapper.findById(routeId);
         if (route == null) {
             return new ArrayList<>();
         }
-        return readPoints(route.getKeyPoint());
+        List<double[]> points = readPoints(route.getKeyPoint());
+        if (points.size() >= 2) {
+            routePointsCache.put(routeId, points);
+        }
+        return points;
     }
 
     /** 车辆接单段（当前位置 → 装货工厂）的临时路线，按车辆+任务缓存 */
@@ -152,6 +166,7 @@ public class RouteService {
 
     public void clearCache() {
         legCache.clear();
+        routePointsCache.clear();
     }
 
     // ------------------------------------------------------------------

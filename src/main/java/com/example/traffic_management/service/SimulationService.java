@@ -19,15 +19,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -64,6 +68,11 @@ public class SimulationService implements InitializingBean {
     private RouteService routeService;
     @Autowired
     private SimProperties props;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
+
+    /** 整轮仿真放进一个事务：50 辆车约上百条 UPDATE，逐条自动提交会被 fsync 拖垮 */
+    private TransactionTemplate transactionTemplate;
 
     private final Random random = new Random();
     private final AtomicInteger missionSeq = new AtomicInteger();
@@ -78,6 +87,7 @@ public class SimulationService implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() {
+        transactionTemplate = new TransactionTemplate(transactionManager);
         log.info("马表仿真服务已就绪：{} 秒/轮，每轮 {} 分钟，车速 {} km/h",
                 props.getTickSeconds(), props.getMinutesPerTick(), props.getSpeedKmh());
     }
@@ -163,31 +173,66 @@ public class SimulationService implements InitializingBean {
     }
 
     /** 执行一轮仿真，独立方法便于测试时手动触发 */
-    public synchronized void tickOnce() {
+    public void tickOnce() {
+        transactionTemplate.executeWithoutResult(status -> doTick());
+    }
+
+    private synchronized void doTick() {
         tick++;
         simMinutes += props.getMinutesPerTick();
-        generateMission();
 
         List<Vehicle> vehicles = vehicleMapper.selectAllNotDeleted();
+        generateMissions(vehicles);
+
+        // 一次性加载所有进行中的任务，按车辆分组，避免每辆车一次查询
+        Map<Integer, Mission> activeByCar = new HashMap<>();
+        for (Mission m : missionMapper.findAllActive()) {
+            if (m.getCarId() != null) {
+                activeByCar.put(m.getCarId(), m);
+            }
+        }
+
         for (Vehicle v : vehicles) {
             try {
-                advance(v);
+                advance(v, activeByCar.get(v.getId()));
             } catch (Exception e) {
                 log.warn("车辆 {} 状态推进失败", v.getId(), e);
             }
         }
+
+        // 车辆多了以后逐车日志太吵，改成每分钟（默认 12 轮）打一条汇总
+        if (tick % 12 == 0) {
+            long idle = vehicles.stream()
+                    .filter(v -> VehicleState.fromActionId(v.getCurrentAction()) == VehicleState.IDLE)
+                    .count();
+            log.info("第 {} 轮 | 仿真 {} 分钟 | 车辆 {} 辆（空闲 {}，在途 {}）| 待接单 {}",
+                    tick, simMinutes, vehicles.size(), idle, vehicles.size() - idle,
+                    missionMapper.countPending());
+        }
     }
 
     /**
-     * 生成一条新的运输任务：随机取两个工厂作为起点/终点，距离按经纬度计算。
+     * 按「空闲车辆缺口」补充运输任务：空闲车比待接单任务多多少，本轮就最多补几条。
+     * 这样 50 辆车也能持续有货可拉，而不是开局把任务抢空后集体闲置。
      */
-    private void generateMission() {
-        if (random.nextDouble() > props.getTaskProbability()) {
-            return;
+    private void generateMissions(List<Vehicle> vehicles) {
+        long idle = vehicles.stream()
+                .filter(v -> VehicleState.fromActionId(v.getCurrentAction()) == VehicleState.IDLE)
+                .count();
+        int pending = missionMapper.countPending();
+        int shortage = (int) Math.max(0, idle - pending);
+        int room = Math.max(0, props.getMaxPendingTasks() - pending);
+        int quota = Math.min(Math.min(shortage, props.getTasksPerTick()), room);
+        for (int i = 0; i < quota; i++) {
+            if (random.nextDouble() > props.getTaskProbability()) {
+                continue;
+            }
+            createMission();
         }
-        if (missionMapper.countPending() >= props.getMaxPendingTasks()) {
-            return;
-        }
+    }
+
+    /** 生成一条运输任务：随机取两个工厂作为起点/终点，路线长度按实际折线计算 */
+    private void createMission() {
         List<Factory> factories = factories();
         if (factories.size() < 2) {
             return;
@@ -219,7 +264,7 @@ public class SimulationService implements InitializingBean {
         mission.setCreateTime(new Date());
         missionMapper.insert(mission);
 
-        log.info("生成新任务 {}：{} → {}，货物={}，{} km",
+        log.debug("生成新任务 {}：{} → {}，货物={}，{} km",
                 mission.getMissionNo(), origin.getFactoryName(), dest.getFactoryName(),
                 mission.getGoodsType(), mission.getDistanceKm());
     }
@@ -227,11 +272,14 @@ public class SimulationService implements InitializingBean {
     /**
      * 推进一辆车：状态未结束则扣时间并移动；状态结束则抽样下一状态并重新绑定任务。
      */
-    private void advance(Vehicle v) {
+    private void advance(Vehicle v, Mission mission) {
         int step = props.getMinutesPerTick();
         VehicleState current = VehicleState.fromActionId(v.getCurrentAction());
-        Mission mission = missionMapper.findActiveByVehicleId(v.getId());
         int remaining = v.getRemainingTime() == null ? 0 : v.getRemainingTime();
+        Integer beforeAction = v.getCurrentAction();
+        Integer beforeRemaining = v.getRemainingTime();
+        Double beforeLat = v.getCurrentLatitude();
+        Double beforeLng = v.getCurrentLongitude();
 
         if (remaining > step) {
             // 状态延续：只走时间，不调用状态选择函数
@@ -250,7 +298,7 @@ public class SimulationService implements InitializingBean {
             if (next.isMoving() && mission != null) {
                 moveStep(v, next, mission);
             }
-            log.info("车辆{}：{} → {}，剩余 {} 分钟{}", v.getId(), current.getDesc(), next.getDesc(),
+            log.debug("车辆{}：{} → {}，剩余 {} 分钟{}", v.getId(), current.getDesc(), next.getDesc(),
                     v.getRemainingTime(),
                     mission == null ? "" : "，任务 " + mission.getMissionNo());
         }
@@ -259,7 +307,14 @@ public class SimulationService implements InitializingBean {
             mission.setElapsedMinutes(nz(mission.getElapsedMinutes()) + step);
             missionMapper.updateProgress(mission);
         }
-        vehicleMapper.update(v);
+        // 空闲且没有任何变化的车辆不必回写
+        boolean changed = !Objects.equals(beforeAction, v.getCurrentAction())
+                || !Objects.equals(beforeRemaining, v.getRemainingTime())
+                || !Objects.equals(beforeLat, v.getCurrentLatitude())
+                || !Objects.equals(beforeLng, v.getCurrentLongitude());
+        if (changed) {
+            vehicleMapper.update(v);
+        }
     }
 
     /**
@@ -362,7 +417,7 @@ public class SimulationService implements InitializingBean {
 
             Factory origin = factory(best.getFactoryId());
             Factory dest = factory(best.getDestFactoryId());
-            log.info("车辆{} 接单 {}：{} → {}，取货距离 {} km",
+            log.debug("车辆{} 接单 {}：{} → {}，取货距离 {} km",
                     v.getId(), best.getMissionNo(),
                     origin == null ? best.getFactoryId() : origin.getFactoryName(),
                     dest == null ? best.getDestFactoryId() : dest.getFactoryName(),
@@ -375,7 +430,7 @@ public class SimulationService implements InitializingBean {
     private void completeMission(Mission mission) {
         mission.setStatus(MissionStatus.DONE);
         missionMapper.updateProgress(mission);
-        log.info("任务 {} 已完成", mission.getMissionNo());
+        log.debug("任务 {} 已完成", mission.getMissionNo());
     }
 
     private void park(Vehicle v) {
@@ -462,7 +517,7 @@ public class SimulationService implements InitializingBean {
         dto.setSimMinutes(simMinutes);
         dto.setVehicles(vehicleMapper.selectAllNotDeleted());
         dto.setPendingMissions(missionMapper.findByStatus(MissionStatus.PENDING, 10));
-        dto.setActiveMissions(missionMapper.findActive(10));
+        dto.setActiveMissions(missionMapper.findActive(20));
         dto.setDoneMissions(missionMapper.findByStatus(MissionStatus.DONE, 10));
         return dto;
     }

@@ -34,6 +34,9 @@ public class SimProperties {
     /** 待接单任务上限，避免无人接单时无限增长 */
     private int maxPendingTasks = 50;
 
+    /** 每轮最多新增多少条任务（实际按"空闲车辆数 - 待接单数"的缺口生成） */
+    private int tasksPerTick = 5;
+
     /**
      * 高德「Web服务」类型 key（不是 JS API key）。
      * 留空时路线由 PolylineUtil 合成；填入后自动切换为真实道路。
@@ -102,6 +105,14 @@ public class SimProperties {
 
     public void setMaxPendingTasks(int maxPendingTasks) {
         this.maxPendingTasks = maxPendingTasks;
+    }
+
+    public int getTasksPerTick() {
+        return tasksPerTick;
+    }
+
+    public void setTasksPerTick(int tasksPerTick) {
+        this.tasksPerTick = tasksPerTick;
     }
 
     public String getAmapWebKey() {
